@@ -38,47 +38,39 @@ const getJourneys = async () => {
     return {Items: accumulated};
 };
 
+const putDynamoDBItem = async (params) => {
+    let response = await docClient.put(params).promise();
+    return response;
+};
 
 exports.handler = async (event, context) => {
     // All log statements are written to CloudWatch by default. For more information, see
     // https://docs.aws.amazon.com/lambda/latest/dg/nodejs-prog-model-logging.html
     console.info(JSON.stringify(event));
     
-    await getCampaigns().then(function(campaigns) {
+    let campaigns = await getCampaigns();
+    //console.log(campaigns.Items);
+    for (let index = 0; index < campaigns.Items.length; index++) {
+        const campaign = campaigns.Items[index];
+        console.log('campaign: ', campaign.Id, campaign.Name);
+        var params = {
+            TableName:process.env.CAMPAIGN_TABLE, 
+            Item:campaign
+        };
+
+        let response = await putDynamoDBItem(params);
+    }
+
+
+    let journeys = await getJourneys();
         //console.log(campaigns.Items);
-        for (let index = 0; index < campaigns.Items.length; index++) {
-            const campaign = campaigns.Items[index];
-            console.log('campaign: ', campaign.Id, campaign.Name)
-            var params = {
-                TableName:process.env.CAMPAIGN_TABLE, 
-                Item:campaign
-            };
-
-            docClient.put(params).promise()  
-            .catch(function(err) {
-                console.log(err);
-            });
-        }
-    }).catch(function(e) {
-        console.log('Could not load campaigns: ' + e);
-    });
-
-    await getJourneys().then(function(journeys) {
-        //console.log(campaigns.Items);
-        for (let index = 0; index < journeys.Items.length; index++) {
-            const journey = journeys.Items[index];
-            console.log('journey: ', journey.Id, journey.Name)
-            var params = {
-                TableName:process.env.JOURNEY_TABLE,
-                Item:journey
-            };
-
-            docClient.put(params).promise()  
-            .catch(function(err) {
-                console.log(err);
-            });
-        }
-    }).catch(function(e) {
-        console.log('Could not load journeys: ' + e);
-    });
-}
+    for (let index = 0; index < journeys.Items.length; index++) {
+        const journey = journeys.Items[index];
+        console.log('journey: ', journey.Id, journey.Name);
+        var params2 = {
+            TableName:process.env.JOURNEY_TABLE,
+            Item:journey
+        };
+        let journeyResponse = await putDynamoDBItem(params2);
+    }
+};
